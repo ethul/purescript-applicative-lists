@@ -1,0 +1,21 @@
+{
+  "name": "purescript-applicative-lists",
+  "license": "MIT",
+  "ignore": [
+    "*",
+    "!src/**/*"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/ethul/purescript-applicative-lists.git"
+  },
+  "dependencies": {
+    "purescript-exists": "^2.0.0",
+    "purescript-leibniz": "^2.0.0",
+    "purescript-tuples": "^3.0.0",
+    "purescript-unsafe-coerce": "^2.0.0"
+  },
+  "devDependencies": {
+    "purescript-test-unit": "^10.0.1"
+  }
+}
