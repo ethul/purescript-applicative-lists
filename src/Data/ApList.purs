@@ -6,14 +6,14 @@
 -- |
 -- | See [Free Applicative Functors in Haskell](https://www.eyrie.org/~zednenem/2013/05/27/freeapp) (Menendez 2013)
 module Data.ApList
-  ( ApList(..)
-  , ApCons'(..)
-  , apNil
-  , apCons
-  , reduceApList
-  , hoistApList
-  , traverseApList
-  , rebaseApList
+  ( ApList
+  , Cons'
+  , nil
+  , cons
+  , reduce
+  , hoist
+  , traverse
+  , rebase
   ) where
 
 import Prelude
@@ -24,56 +24,56 @@ import Data.Tuple (Tuple(..))
 
 import Unsafe.Coerce (unsafeCoerce)
 
-data ApList f a = ApNil (a ~ Unit) | ApCons (Exists (ApCons' f a))
+data ApList f a = Nil (a ~ Unit) | Cons (Exists (Cons' f a))
 
-data ApCons' f a u = ApCons' (f a) (ApList f u) (a ~ Tuple a u)
+data Cons' f a u = Cons' (f a) (ApList f u) (a ~ Tuple a u)
 
-apNil :: forall f. ApList f Unit
-apNil = ApNil id
+nil :: forall f. ApList f Unit
+nil = Nil id
 
-apCons :: forall f a u. f a -> ApList f u -> ApList f (Tuple a u)
-apCons a as = ApCons (mkExists apCons')
+cons :: forall f a u. f a -> ApList f u -> ApList f (Tuple a u)
+cons a as = Cons (mkExists cons')
   where
-  apCons' :: ApCons' f (Tuple a u) u
-  apCons' = unsafeCoerce (ApCons' a as z)
+  cons' :: Cons' f (Tuple a u) u
+  cons' = unsafeCoerce (Cons' a as z)
     where
     z :: a ~ Tuple a u
     z = unsafeCoerce unit
 
-reduceApList :: forall f a. Applicative f => ApList f a -> f a
-reduceApList fa =
+reduce :: forall f a. Applicative f => ApList f a -> f a
+reduce fa =
   case fa of
-       ApNil z -> pure (coerceSymm z unit)
-       ApCons x -> runExists apCons' x
+       Nil z -> pure (coerceSymm z unit)
+       Cons x -> runExists cons' x
   where
-  apCons' :: forall u. ApCons' f a u -> f a
-  apCons' (ApCons' a as z) = coerceSymm z <$> (Tuple <$> a <*> reduceApList as)
+  cons' :: forall u. Cons' f a u -> f a
+  cons' (Cons' a as z) = coerceSymm z <$> (Tuple <$> a <*> reduce as)
 
-hoistApList :: forall f g a. (f ~> g) -> ApList f a -> ApList g a
-hoistApList k fa =
+hoist :: forall f g a. (f ~> g) -> ApList f a -> ApList g a
+hoist k fa =
   case fa of
-       ApNil z -> ApNil z
-       ApCons x -> runExists apCons' x
+       Nil z -> Nil z
+       Cons x -> runExists cons' x
   where
-  apCons' :: forall u. ApCons' f a u -> ApList g a
-  apCons' (ApCons' a as z) = ApCons (mkExists (ApCons' (k a) (hoistApList k as ) z))
+  cons' :: forall u. Cons' f a u -> ApList g a
+  cons' (Cons' a as z) = Cons (mkExists (Cons' (k a) (hoist k as ) z))
 
-traverseApList :: forall f g h a. Applicative h => (forall x. f x -> h (g x)) -> ApList f a -> h (ApList g a)
-traverseApList k fa =
+traverse :: forall f g h a. Applicative h => (forall x. f x -> h (g x)) -> ApList f a -> h (ApList g a)
+traverse k fa =
   case fa of
-       ApNil z -> pure (ApNil z)
-       ApCons x -> runExists apCons' x
+       Nil z -> pure (Nil z)
+       Cons x -> runExists cons' x
   where
-  apCons' :: forall u. ApCons' f a u -> h (ApList g a)
-  apCons' (ApCons' a as z) = (\b bs -> ApCons (mkExists (ApCons' b bs z))) <$> k a <*> traverseApList k as
+  cons' :: forall u. Cons' f a u -> h (ApList g a)
+  cons' (Cons' a as z) = (\b bs -> Cons (mkExists (Cons' b bs z))) <$> k a <*> traverse k as
 
-rebaseApList :: forall f u v y z. ApList f u -> (forall x. (x -> y) -> ApList f x -> z) -> (v -> u -> y) -> ApList f v -> z
-rebaseApList fa k f =
+rebase :: forall f u v w z. ApList f u -> (forall x. (x -> w) -> ApList f x -> z) -> (v -> u -> w) -> ApList f v -> z
+rebase fa k f =
   case fa of
-       ApNil z -> k (_ `f` (coerceSymm z unit))
-       ApCons x -> runExists apCons' x
+       Nil z -> k (_ `f` (coerceSymm z unit))
+       Cons x -> runExists cons' x
   where
-  apCons' :: forall a. ApCons' f u a -> ApList f v -> z
-  apCons' (ApCons' x xs z) =
-    rebaseApList xs (\g s -> k (\(Tuple a u) -> g u a) (apCons x s))
-                    (\v u a -> f v (coerceSymm z (Tuple a u)))
+  cons' :: forall a. Cons' f u a -> ApList f v -> z
+  cons' (Cons' x xs z) =
+    rebase xs (\g s -> k (\(Tuple a u) -> g u a) (cons x s))
+              (\v u a -> f v (coerceSymm z (Tuple a u)))
