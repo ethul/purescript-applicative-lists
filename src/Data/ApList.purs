@@ -7,7 +7,6 @@
 -- | See [Free Applicative Functors in Haskell](https://www.eyrie.org/~zednenem/2013/05/27/freeapp) (Menendez 2013)
 module Data.ApList
   ( ApList
-  , Cons'
   , nil
   , cons
   , reduce
